@@ -1,10 +1,11 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class User(object):
 
     def __init__(self):
-        self.__open_probability = np.array([0.01, 0.001, 0.001])
+        self.__open_probability = np.array([0.015, 0.0015, 0.0015])
 
     def is_open(self, send_timing):
         return np.random.binomial(1, self.__open_probability[send_timing], 1)[0]
@@ -40,27 +41,35 @@ class Mailer(object):
 
 
 def main():
-    n_users = 10000
-    send_days = 30
+    n_users = 1000
+    send_days = 60
 
     users = [User() for _ in range(n_users)]
-    mailers = [Mailer(epsilon=0.5) for _ in range(n_users)]
+    mailers = [Mailer(epsilon=0.1) for _ in range(n_users)]
 
+    send_users_by_time = []
     for i in range(send_days):
+        send_users = np.asarray([0, 0, 0])
         for j in range(n_users):
             user = users[j]
             mailer = mailers[j]
             send_timing = mailer.decide_send_timing()
+            send_users[send_timing] += 1
             is_open = user.is_open(send_timing)
             mailer.recode_result(send_timing, is_open)
+        send_users_by_time.append(send_users)
 
-    cnt = 0
-    for j in range(n_users):
-        max_probability = mailers[j].get_max_probability()
-        if len(max_probability) == 1 and max_probability[0] == 0:
-            cnt += 1
-    print(cnt)
-    print(float(cnt) / n_users)
+    data = np.asarray(send_users_by_time)
+    p = []
+    for i in range(3):
+        height = np.array(data[:, i])
+        left = np.arange(len(height))
+        p.append(plt.plot(left, height))
+
+    plt.legend((p[0][0], p[1][0], p[2][0]), ("Suitable timebox (p=0.015)", "Unsuitable timebox (p=0.0015)", "Unsuitable timebox (p=0.0015)"), loc=2)
+    plt.xlabel("days")
+    plt.ylabel("the number of users")
+    plt.savefig('send_timing.png')
 
 
 if __name__ == '__main__':
